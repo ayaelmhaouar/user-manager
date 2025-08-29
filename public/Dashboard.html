@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard - Utilisateurs</title>
+  <style>
+     body {
+      font-family: Arial, sans-serif;
+      background: #f0f8ff;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Navbar */
+    nav {
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+      padding: 12px 30px;
+      display: flex;
+      justify-content: center;
+      gap: 25px;
+      align-items: center;
+      box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
+      border-radius: 0 0 12px 12px;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 16px;
+      padding: 8px 15px;
+      border-radius: 8px;
+      transition: 0.3s;
+    }
+    nav a:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+
+    /* Container */
+    .container {
+      max-width: 800px;
+      margin: 30px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0px 8px 20px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      background: linear-gradient(90deg, #4facfe, #00f2fe);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 12px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+    th {
+      background: #4facfe;
+      color: white;
+    }
+
+    button {
+      padding: 5px 10px;
+      background: #f44336;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #d32f2f;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav>
+    <a href="register.html">Inscription</a>
+    <a href="login.html">Connexion</a>
+    <a href="dashboard.html">Dashboard</a>
+  </nav>
+
+  <!-- Container principal -->
+  <div class="container">
+    <h1>Utilisateurs enregistrés</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Email</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="userTable">
+        <!-- Les utilisateurs seront ajoutés ici dynamiquement -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    const token = localStorage.getItem("token"); // récupère le token après login
+
+    async function loadUsers() {
+      const res = await fetch("http://localhost:3000/users", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!res.ok) {
+        alert("Impossible de charger les utilisateurs. Connectez-vous.");
+        return;
+      }
+
+      const users = await res.json();
+      const tbody = document.getElementById("userTable");
+      tbody.innerHTML = "";
+
+      users.forEach(user => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${user.username}</td>
+          <td>${user.email}</td>
+          <td><button onclick="deleteUser(${user.id})">Supprimer</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function deleteUser(id) {
+      await fetch(`http://localhost:3000/users/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      loadUsers(); // recharge la liste après suppression
+    }
+
+    loadUsers();
+  </script>
+</body>
+</html>
