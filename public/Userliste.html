@@ -1,48 +1,62 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Liste des utilisateurs</title>
-  <style>
-    body { font-family: Arial; padding: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
-    button { padding: 5px 10px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; }
-    button:hover { background: #d32f2f; }
-  </style>
+<meta charset="UTF-8">
+<title>Liste des utilisateurs</title>
 </head>
 <body>
-  <h1>Utilisateurs enregistrés</h1>
-  <table>
-    <thead>
-      <tr><th>Nom</th><th>Email</th><th>Actions</th></tr>
-    </thead>
-    <tbody id="userTable"></tbody>
-  </table>
+<h1>Ajouter un utilisateur</h1>
+<form id="addUserForm">
+  <input type="text" id="username" placeholder="Nom" required>
+  <input type="email" id="email" placeholder="Email" required>
+  <input type="password" id="password" placeholder="Mot de passe" required>
+  <button type="submit">S'inscrire</button>
+</form>
 
-  <script>
-    async function loadUsers() {
-      const res = await fetch("http://localhost:3000/users");
-      const users = await res.json();
-      const tbody = document.getElementById("userTable");
-      tbody.innerHTML = "";
-      users.forEach(user => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${user.username}</td>
-          <td>${user.email}</td>
-          <td><button onclick="deleteUser('${user.email}')">Supprimer</button></td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
+<h1>Utilisateurs enregistrés</h1>
+<table border="1">
+  <thead>
+    <tr><th>Nom</th><th>Email</th><th>Actions</th></tr>
+  </thead>
+  <tbody id="userTable"></tbody>
+</table>
 
-    async function deleteUser(email) {
-      await fetch(`http://localhost:3000/users/${email}`, { method: "DELETE" });
-      loadUsers();
-    }
+<script>
+async function loadUsers() {
+  const res = await fetch("/users");
+  const users = await res.json();
+  const tbody = document.getElementById("userTable");
+  tbody.innerHTML = "";
+  users.forEach(user => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${user.username}</td><td>${user.email}</td>
+                    <td><button onclick="deleteUser('${user.id}')">Supprimer</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
 
-    loadUsers();
-  </script>
+async function deleteUser(id) {
+  await fetch(`/users/${id}`, { method: "DELETE" });
+  loadUsers();
+}
+
+document.getElementById("addUserForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const username = document.getElementById("username").value;
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  await fetch("/users", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: username, email, password })
+  });
+
+  e.target.reset();
+  loadUsers();
+});
+
+loadUsers();
+</script>
 </body>
 </html>

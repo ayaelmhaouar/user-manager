@@ -1,50 +1,52 @@
-const fs = require("fs").promises;
-const bcrypt = require("bcryptjs");
+import mysql from 'mysql2';
 
-class UserManager {
-  constructor(file) {
-    this.file = file;
+const db = mysql.createConnection({
+  host: 'localhost',
+  user: 'root',
+  password: '', // ton mot de passe MySQL
+  database: 'user_manager' // crée cette base avant
+});
+
+// Connecter à MySQL
+db.connect(err => {
+  if (err) throw err;
+  console.log("Connecté à MySQL.");
+});
+
+// Création de la table users si elle n'existe pas
+db.query(`CREATE TABLE IF NOT EXISTS users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL
+)`);
+
+export const UserManager = {
+  createUser: (username, email, password, callback) => {
+    db.query(
+      'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
+      [username, email, password],
+      callback
+    );
+  },
+
+  getAllUsers: callback => {
+    db.query('SELECT * FROM users', callback);
+  },
+
+  getUserById: (id, callback) => {
+    db.query('SELECT * FROM users WHERE id = ?', [id], callback);
+  },
+
+  updateUser: (id, username, email, password, callback) => {
+    db.query(
+      'UPDATE users SET username=?, email=?, password=? WHERE id=?',
+      [username, email, password, id],
+      callback
+    );
+  },
+
+  deleteUser: (id, callback) => {
+    db.query('DELETE FROM users WHERE id=?', [id], callback);
   }
-
-  async register(username, email, password) {
-    const users = await this.getUsers();
-    if (users.find(u => u.email === email)) throw new Error("Email déjà utilisé");
-    const hashed = await bcrypt.hash(password, 10);
-    const newUser = { id: users.length + 1, username, email, password: hashed };
-    users.push(newUser);
-    await fs.writeFile(this.file, JSON.stringify(users, null, 2));
-    return newUser;
-  }
-
-  async login(email, password) {
-    const users = await this.getUsers();
-    const user = users.find(u => u.email === email);
-    if (!user) throw new Error("Utilisateur introuvable");
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) throw new Error("Mot de passe incorrect");
-    return user;
-  }
-
-  async listUsers() {
-    return await this.getUsers();
-  }
-
-  async deleteUser(id) {
-    const users = await this.getUsers();
-    const index = users.findIndex(u => u.id === id);
-    if (index === -1) throw new Error("Utilisateur non trouvé");
-    users.splice(index, 1);
-    await fs.writeFile(this.file, JSON.stringify(users, null, 2));
-  }
-
-  async getUsers() {
-    try {
-      const data = await fs.readFile(this.file, "utf8");
-      return JSON.parse(data);
-    } catch {
-      return [];
-    }
-  }
-}
-
-module.exports = UserManager;
+};

@@ -2,48 +2,33 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard - Utilisateurs</title>
+  <title>Dashboard Utilisateurs</title>
   <style>
-     body {
+    body {
       font-family: Arial, sans-serif;
       background: #f0f8ff;
       margin: 0;
       padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
     }
 
-    /* Navbar */
     nav {
       background: linear-gradient(135deg, #4facfe, #00f2fe);
-      padding: 12px 30px;
+      padding: 10px 20px;
       display: flex;
-      justify-content: center;
-      gap: 25px;
+      gap: 20px;
       align-items: center;
-      box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
-      border-radius: 0 0 12px 12px;
-      flex-wrap: wrap;
-      width: 100%;
     }
     nav a {
       color: white;
       text-decoration: none;
       font-weight: bold;
-      font-size: 16px;
-      padding: 8px 15px;
-      border-radius: 8px;
-      transition: 0.3s;
     }
     nav a:hover {
-      background: rgba(255, 255, 255, 0.2);
+      text-decoration: underline;
     }
 
-
-    /* Container */
     .container {
-      max-width: 800px;
+      max-width: 900px;
       margin: 30px auto;
       background: white;
       padding: 20px;
@@ -51,102 +36,148 @@
       box-shadow: 0px 8px 20px rgba(0,0,0,0.1);
     }
 
-    h1 {
-      text-align: center;
-      background: linear-gradient(90deg, #4facfe, #00f2fe);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 20px;
     }
+    table, th, td {
+      border: 1px solid #ddd;
+    }
     th, td {
       padding: 12px;
-      border: 1px solid #ccc;
       text-align: left;
     }
     th {
-      background: #4facfe;
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
       color: white;
     }
 
     button {
-      padding: 5px 10px;
-      background: #f44336;
-      color: white;
+      padding: 6px 12px;
       border: none;
-      border-radius: 5px;
+      border-radius: 6px;
       cursor: pointer;
+      color: white;
+      background: #ff4d4f;
     }
     button:hover {
-      background: #d32f2f;
+      background: #d9363e;
+    }
+
+    #addUserForm {
+      margin-top: 20px;
+    }
+    #addUserForm input {
+      padding: 8px;
+      margin-right: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    #addUserForm button {
+      background: #4facfe;
+    }
+    #addUserForm button:hover {
+      background: #00c6ff;
+    }
+
+    .message {
+      margin-top: 10px;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-
-  <!-- Navbar -->
   <nav>
     <a href="register.html">Inscription</a>
     <a href="login.html">Connexion</a>
     <a href="dashboard.html">Dashboard</a>
   </nav>
 
-  <!-- Container principal -->
   <div class="container">
     <h1>Utilisateurs enregistrés</h1>
-    <table>
+    <div class="message" id="message"></div>
+
+    <table id="usersTable">
       <thead>
         <tr>
+          <th>ID</th>
           <th>Nom</th>
           <th>Email</th>
-          <th>Actions</th>
+          <th>Action</th>
         </tr>
       </thead>
-      <tbody id="userTable">
-        <!-- Les utilisateurs seront ajoutés ici dynamiquement -->
-      </tbody>
+      <tbody></tbody>
     </table>
+
+    <h2>Ajouter un utilisateur</h2>
+    <form id="addUserForm">
+      <input type="text" id="username" placeholder="Nom" required>
+      <input type="email" id="email" placeholder="Email" required>
+      <input type="password" id="password" placeholder="Mot de passe" required>
+      <button type="submit">Ajouter</button>
+    </form>
   </div>
 
   <script>
-    const token = localStorage.getItem("token"); // récupère le token après login
+    const usersTableBody = document.querySelector("#usersTable tbody");
+    const messageDiv = document.getElementById("message");
 
+    // Charger les utilisateurs
     async function loadUsers() {
-      const res = await fetch("http://localhost:3000/users", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      try {
+        const token = localStorage.getItem('token'); // si JWT
+        const res = await fetch("/users", {
+          headers: { Authorization: token ? `Bearer ${token}` : '' }
+        });
+        const users = await res.json();
 
-      if (!res.ok) {
-        alert("Impossible de charger les utilisateurs. Connectez-vous.");
-        return;
+        usersTableBody.innerHTML = "";
+        users.forEach(user => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${user.id}</td>
+            <td>${user.username}</td>
+            <td>${user.email}</td>
+            <td><button onclick="deleteUser(${user.id})">Supprimer</button></td>
+          `;
+          usersTableBody.appendChild(row);
+        });
+      } catch (err) {
+        messageDiv.textContent = "Erreur lors du chargement des utilisateurs";
       }
-
-      const users = await res.json();
-      const tbody = document.getElementById("userTable");
-      tbody.innerHTML = "";
-
-      users.forEach(user => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${user.username}</td>
-          <td>${user.email}</td>
-          <td><button onclick="deleteUser(${user.id})">Supprimer</button></td>
-        `;
-        tbody.appendChild(tr);
-      });
     }
 
+    // Supprimer utilisateur
     async function deleteUser(id) {
-      await fetch(`http://localhost:3000/users/${id}`, {
+      const token = localStorage.getItem('token'); // si JWT
+      const res = await fetch(`/users/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: token ? `Bearer ${token}` : '' }
       });
-      loadUsers(); // recharge la liste après suppression
+      const data = await res.json();
+      messageDiv.textContent = data.message || data.error;
+      loadUsers();
     }
+
+    // Ajouter utilisateur
+    const addUserForm = document.getElementById("addUserForm");
+    addUserForm.addEventListener("submit", async e => {
+      e.preventDefault();
+      const username = document.getElementById("username").value;
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      const res = await fetch("/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, email, password })
+      });
+      const data = await res.json();
+      messageDiv.textContent = data.message || data.error;
+      addUserForm.reset();
+      loadUsers();
+    });
 
     loadUsers();
   </script>
